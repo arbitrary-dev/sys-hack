@@ -6,7 +6,8 @@ typedef struct node {
   struct node *next;
 } Node;
 
-Node * l_prepend(Node *to, Node *n);
-Node * l_append(Node *to, Node *n);
+Node * l_prepend(Node *to, void *value);
+Node * l_prependn(Node *to, Node *n);
+Node * l_append(Node *to, void *value);
 
 #endif

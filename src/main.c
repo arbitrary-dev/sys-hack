@@ -129,7 +129,7 @@ ch_move(Character *c, int dx, int dy) {
   map[sx][sy].top = n->next;
   cell_render(sx, sy);
 
-  map[tx][ty].top = l_prepend(map[tx][ty].top, n);
+  map[tx][ty].top = l_prependn(map[tx][ty].top, n);
   c->x = tx;
   c->y = ty;
   ch_render(c);
@@ -177,9 +177,7 @@ ctx_enqueue_rendering(size_t x1, size_t y1, size_t x2, size_t y2) {
   rect->y1 = y1;
   rect->x2 = x2;
   rect->y2 = y2;
-  Node *new_n = calloc(1, sizeof(*new_n));
-  new_n->value = rect;
-  ctx->render_queue = l_append(ctx->render_queue, new_n);
+  ctx->render_queue = l_append(ctx->render_queue, rect);
 }
 
 void
@@ -337,10 +335,7 @@ ch_create(char symbol, int hp, State state, int x, int y) {
   c->x = x;
   c->y = y;
 
-  Node *n = calloc(1, sizeof(*n));
-  n->value = c;
-
-  map[x][y].top = l_prepend(map[x][y].top, n);
+  map[x][y].top = l_prepend(map[x][y].top, c);
   ch_render(c);
 
   return c;

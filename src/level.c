@@ -58,7 +58,9 @@ int x, y;
   if (x < 0 || x >= COLS ||
       y < 0 || y >= LINES)
     return NULL;
-  for (Room *r = lvl->rooms; r; r = r->next) {
+  Node *n = lvl->rooms;
+  while (n) {
+    Room *r = n->value;
     ROOM(r);
     if (x >= rx && x < rx + rw &&
         y >= ry && y < ry + rh) {
@@ -68,6 +70,7 @@ int x, y;
       if (t != T_EMPTY)
         return r;
     }
+    n = n->next;
   }
   return NULL;
 }
@@ -264,17 +267,21 @@ lvl_destroy_room(level, room)
 Level *level;
 Room *room;
 {
-  if (level->rooms == room) {
-    level->rooms = room->next;
-  } else {
-    Room *prev = level->rooms;
-    while (prev && prev->next != room)
-      prev = prev->next;
-    if (prev && prev->next == room)
-      prev->next = room->next;
+  Node *prev = NULL;
+  Node *n = level->rooms;
+  while (n) {
+    if (n->value == room) {
+      if (prev)
+        prev->next = n->next;
+      else
+        level->rooms = n->next;
+      free(n);
+      break;
+    }
+    prev = n;
+    n = n->next;
   }
   free(room->tiles);
-  room->tiles = NULL;
   free(room);
 }
 
@@ -353,7 +360,6 @@ Room *r1, *r2;
   SMALL_SLEEP();
 
   lvl_destroy_room(lvl, r2);
-  lvl->rooms_num -= 1;
 }
 
 Level *
@@ -361,6 +367,7 @@ lvl_build()
 {
   Level *lvl = calloc(1, sizeof(*lvl));
   int failed_attempts = 0;
+  int n_rooms = 0;
 
   // Create random rooms
   while (/*lvl->rooms_num < 10 &&*/ failed_attempts < 100) {
@@ -379,18 +386,19 @@ lvl_build()
     }
     failed_attempts = 0;
     Room *r = mk_room_rect(x, y, w, h);
-    r->next = lvl->rooms;
-    lvl->rooms = r;
-    lvl->rooms_num += 1;
-    mvprintw(0, 0, "Rooms created: %d", lvl->rooms_num);
+    lvl->rooms = l_prepend(lvl->rooms, r);
+    ++n_rooms;
     room_render(lvl, r);
+    mvprintw(0, 0, "Rooms created: %d", n_rooms);
     refresh();
     // SMALL_SLEEP();
   }
 
   // Merge close ones
-  for (Room *r = lvl->rooms; r; r = r->next) {
+  Node *n = lvl->rooms;
+  while (n) {
     Room *mr = NULL;
+    Room *r = n->value;
     ROOM(r);
 
     // Scan north
@@ -402,6 +410,7 @@ lvl_build()
       if (mr && mr != r && room_is_floor(mr, ix, iy)) {
         ix = mr->x + mr->w;
         merge_rooms(lvl, r, mr);
+        --n_rooms;
       } else {
         ++ix;
       }
@@ -416,6 +425,7 @@ lvl_build()
       if (mr && mr != r && room_is_floor(mr, ix, iy)) {
         iy = mr->y + mr->h;
         merge_rooms(lvl, r, mr);
+        --n_rooms;
       } else {
         ++iy;
       }
@@ -430,6 +440,7 @@ lvl_build()
       if (mr && mr != r && room_is_floor(mr, ix, iy)) {
         ix = mr->x + mr->w;
         merge_rooms(lvl, r, mr);
+        --n_rooms;
       } else {
         ++ix;
       }
@@ -444,15 +455,20 @@ lvl_build()
       if (mr && mr != r && room_is_floor(mr, ix, iy)) {
         iy = mr->y + mr->h;
         merge_rooms(lvl, r, mr);
+        --n_rooms;
       } else {
         ++iy;
       }
     }
+
+    n = n->next;
   }
-  mvprintw(1, 0, "Rooms after merge: %d", lvl->rooms_num);
+  mvprintw(1, 0, "Rooms after merge: %d", n_rooms);
 
   // Connect rooms
-  for (Room *r = lvl->rooms; r; r = r->next) {
+  n = lvl->rooms;
+  while (n) {
+    Room *r = n->value;
     ROOM(r);
     for (int i = 0; i < rw * rh; ++i) {
       int x = rx + i % rw;
@@ -479,6 +495,7 @@ lvl_build()
         room_render(lvl, r2);
       }
     }
+    n = n->next;
   }
   refresh();
 

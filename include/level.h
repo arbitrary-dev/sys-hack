@@ -1,6 +1,7 @@
 #ifndef LEVEL_H
 #define LEVEL_H
 
+#include "llist.h"
 #include <stdbool.h>
 #include <stdlib.h>
 
@@ -39,7 +40,6 @@ typedef enum {
 } Tile;
 
 typedef struct room {
-  struct room *next;
   int x;
   int y;
   int w;
@@ -49,8 +49,7 @@ typedef struct room {
 } Room;
 
 typedef struct {
-  Room *rooms;
-  int   rooms_num;
+  Node *rooms;
 } Level;
 
 Level * lvl_build();
